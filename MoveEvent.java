@@ -1,17 +1,10 @@
 import java.util.EventObject;
+import java.util.List;
 
 public class MoveEvent extends EventObject {
-    private int direction;
-    private int[][] pieces;
-    private boolean draw;
-    public MoveEvent(Object source, int direction, int[][] pieces, boolean draw) {
-        super(source);
-        this.direction = direction;
-        this.pieces = pieces;
-        this.draw = draw;
-    }
-
-    public MoveEvent(Object source, int direction, int[][] pieces) {
+    private final int direction;
+    private final List<int[]> pieces;
+    public MoveEvent(Object source, int direction, List<int[]> pieces) {
         super(source);
         this.direction = direction;
         this.pieces = pieces;
@@ -21,11 +14,7 @@ public class MoveEvent extends EventObject {
         return direction;
     }
 
-    public int[][] getPieces() {
+    public List<int[]> getPieces() {
         return pieces;
-    }
-
-    public boolean isDraw() {
-        return draw;
     }
 }

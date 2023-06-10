@@ -1,4 +1,5 @@
 public interface SnakeMoveListener {
-    public boolean moveSnake(MoveEvent evt);
-    public boolean moveHead(MoveEvent evt);
+    boolean moveSnake(MoveEvent evt) throws Exception;
+    boolean moveHead(MoveEvent evt) throws Exception;
+    void spawnFood();
 }

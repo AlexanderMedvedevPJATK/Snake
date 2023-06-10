@@ -1,11 +1,8 @@
 import javax.swing.*;
-import javax.swing.event.CellEditorListener;
-import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
-import java.util.EventObject;
 
-public class MyPanel extends JPanel implements TableCellRenderer, TableCellEditor {
+public class MyPanel extends JPanel implements TableCellRenderer {
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         switch (Integer.parseInt(value.toString())) {
@@ -16,45 +13,5 @@ public class MyPanel extends JPanel implements TableCellRenderer, TableCellEdito
             case 4 -> setBackground(Color.MAGENTA);
         }
         return this;
-    }
-
-    @Override
-    public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-        return null;
-    }
-
-    @Override
-    public Object getCellEditorValue() {
-        return this.getBackground();
-    }
-
-    @Override
-    public boolean isCellEditable(EventObject anEvent) {
-        return false;
-    }
-
-    @Override
-    public boolean shouldSelectCell(EventObject anEvent) {
-        return false;
-    }
-
-    @Override
-    public boolean stopCellEditing() {
-        return false;
-    }
-
-    @Override
-    public void cancelCellEditing() {
-
-    }
-
-    @Override
-    public void addCellEditorListener(CellEditorListener l) {
-
-    }
-
-    @Override
-    public void removeCellEditorListener(CellEditorListener l) {
-
     }
 }

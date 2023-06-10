@@ -1,5 +1,4 @@
 import javax.swing.table.AbstractTableModel;
-import java.util.Arrays;
 
 public class Field extends AbstractTableModel implements SnakeMoveListener {
     int[][] field;
@@ -14,9 +13,7 @@ public class Field extends AbstractTableModel implements SnakeMoveListener {
             for (int j = 0; j < WIDTH; j++)
                 field[i][j] = 0;
         field[0][0] = 2;
-        field[3][4] = 3;
-        field[5][8] = 3;
-        field[15][7] = 3;
+        spawnFood();
     }
 
     @Override
@@ -49,89 +46,91 @@ public class Field extends AbstractTableModel implements SnakeMoveListener {
         this.field[rowIndex][columnIndex] = Integer.parseInt(aValue.toString());
     }
 
-    // <---------- SNAKE MOVEMENT ---------->
+    // <---------- SNAKE MOVEMENT AND FOOD ---------->
+
+    public void spawnFood() {
+        int x = (int)(Math.random() * WIDTH);
+        int y = (int)(Math.random() * HEIGHT);
+        while(Integer.parseInt(getValueAt(y,x).toString()) == 3 ||
+              Integer.parseInt(getValueAt(y,x).toString()) == 2 ||
+              Integer.parseInt(getValueAt(y,x).toString()) == 1) {
+            x = (int)(Math.random() * WIDTH);
+            y = (int)(Math.random() * HEIGHT);
+        }
+        setValueAt(3, y, x);
+        fireTableCellUpdated(y, x);
+    }
 
     public boolean checkFood(Object valueAt) {
         return Integer.parseInt(valueAt.toString()) == 3;
     }
 
     @Override
-    public boolean moveSnake(MoveEvent evt) {
-        boolean food = false;
+    public boolean moveSnake(MoveEvent evt) throws Exception {
 
         // place next to head
-        setValueAt(1, evt.getPieces()[0][0], evt.getPieces()[0][1]);
-        fireTableCellUpdated(evt.getPieces()[0][0], evt.getPieces()[0][1]);
+        setValueAt(1, evt.getPieces().get(0)[0], evt.getPieces().get(0)[1]);
+        fireTableCellUpdated(evt.getPieces().get(0)[0], evt.getPieces().get(0)[1]);
 
-        switch (evt.getDirection()) {
-            case 0 -> {
-                food = checkFood(getValueAt(evt.getPieces()[0][0] - 1, evt.getPieces()[0][1]));
-                // move head
-                setValueAt(2, evt.getPieces()[0][0] - 1, evt.getPieces()[0][1]);
-                fireTableCellUpdated(evt.getPieces()[0][0] - 1, evt.getPieces()[0][1]);
-            }
-            case 1 -> {
-                // move head
-                food = checkFood(getValueAt(evt.getPieces()[0][0], evt.getPieces()[0][1] + 1));
-                setValueAt(2, evt.getPieces()[0][0], evt.getPieces()[0][1] + 1);
-                fireTableCellUpdated(evt.getPieces()[0][0], evt.getPieces()[0][1] + 1);
+        boolean food = moveHead(evt);
 
-//                if(evt.getPieces()[1][0] != -1) {
-//                    setValueAt(1, evt.getPieces()[0][0], evt.getPieces()[0][1]);
-//                    fireTableCellUpdated(evt.getPieces()[0][0], evt.getPieces()[0][1]);
-//                }
-            }
-            case 2 -> {
-                // move head
-                food = checkFood(getValueAt(evt.getPieces()[0][0] + 1, evt.getPieces()[0][1]));
-                setValueAt(2, evt.getPieces()[0][0] + 1, evt.getPieces()[0][1]);
-                fireTableCellUpdated(evt.getPieces()[0][0] + 1, evt.getPieces()[0][1]);
-            }
-            case 3 -> {
-                // move head
-                food = checkFood(getValueAt(evt.getPieces()[0][0], evt.getPieces()[0][1] - 1));
-                setValueAt(2, evt.getPieces()[0][0], evt.getPieces()[0][1] - 1);
-                fireTableCellUpdated(evt.getPieces()[0][0], evt.getPieces()[0][1] - 1);
-            }
-        }
-        if(true) { // if food, then we don't remove the tail, but move the head
-            setValueAt(0, evt.getPieces()[2][0], evt.getPieces()[2][1]);
-            fireTableCellUpdated(evt.getPieces()[2][0], evt.getPieces()[2][1]);
-        }
-        for (int[] pieces: evt.getPieces()) {
-            System.out.print(Arrays.toString(pieces) + " ");
-        }
-        System.out.println();
+        // clean tail cell
+        setValueAt(0, evt.getPieces().get(
+                        evt.getPieces().size() - 1)[0],
+                        evt.getPieces().get(evt.getPieces().size() - 1)[1]);
+
+        fireTableCellUpdated(evt.getPieces().get(
+                        evt.getPieces().size() - 1)[0],
+                        evt.getPieces().get(evt.getPieces().size() - 1)[1]);
+
         return food;
     }
     @Override
-    public boolean moveHead(MoveEvent evt) {
+    public boolean moveHead(MoveEvent evt) throws Exception {
         boolean food = false;
+        int x = evt.getPieces().get(0)[1];
+        int y = evt.getPieces().get(0)[0];
         switch (evt.getDirection()) {
             case 0 -> {
-                food = checkFood(getValueAt(evt.getPieces()[0][0] - 1, evt.getPieces()[0][1]));
+                food = checkFood(getValueAt(y - 1, x));
 
-                setValueAt(2, evt.getPieces()[0][0] - 1, evt.getPieces()[0][1]);
-                fireTableCellUpdated(evt.getPieces()[0][0] - 1, evt.getPieces()[0][1]);
+                if(Integer.parseInt(getValueAt(y - 1, x).toString()) == 1)
+                    throw new Exception();
+
+                setValueAt(2, y - 1, x);
+                fireTableCellUpdated(y - 1, x);
             }
             case 1 -> {
-                food = checkFood(getValueAt(evt.getPieces()[0][0], evt.getPieces()[0][1] + 1));
-                setValueAt(2, evt.getPieces()[0][0], evt.getPieces()[0][1] + 1);
-                fireTableCellUpdated(evt.getPieces()[0][0], evt.getPieces()[0][1] + 1);
+                food = checkFood(getValueAt(y, x + 1));
+
+                if(Integer.parseInt(getValueAt(y, x + 1).toString()) == 1)
+                    throw new Exception();
+
+                setValueAt(2, y, x + 1);
+                fireTableCellUpdated(y, x + 1);
             }
             case 2 -> {
-                food = checkFood(getValueAt(evt.getPieces()[0][0] + 1, evt.getPieces()[0][1]));
-                setValueAt(2, evt.getPieces()[0][0] + 1, evt.getPieces()[0][1]);
-                fireTableCellUpdated(evt.getPieces()[0][0] + 1, evt.getPieces()[0][1]);
+                food = checkFood(getValueAt(y + 1, x));
+
+                if(Integer.parseInt(getValueAt(y + 1, x).toString()) == 1)
+                    throw new Exception();
+
+                setValueAt(2, y + 1, x);
+                fireTableCellUpdated(y + 1, x);
             }
             case 3 -> {
-                food = checkFood(getValueAt(evt.getPieces()[0][0], evt.getPieces()[0][1] - 1));
-                setValueAt(2, evt.getPieces()[0][0], evt.getPieces()[0][1] - 1);
-                fireTableCellUpdated(evt.getPieces()[0][0], evt.getPieces()[0][1] - 1);
+                food = checkFood(getValueAt(y, x - 1));
+
+                if(Integer.parseInt(getValueAt(y, x - 1).toString()) == 1)
+                    throw new Exception();
+
+                setValueAt(2, y, x - 1);
+                fireTableCellUpdated(y, x - 1);
             }
         }
-        setValueAt(1, evt.getPieces()[0][0], evt.getPieces()[0][1]);
-        fireTableCellUpdated(evt.getPieces()[0][0], evt.getPieces()[0][1]);
+        setValueAt(1, y, x);
+        fireTableCellUpdated(y, x);
+
         return food;
     }
 }
