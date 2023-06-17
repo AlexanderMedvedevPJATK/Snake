@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Snake extends Thread implements KeyListener {
+public class Snake extends Thread implements KeyListener, SnakeEventListener {
 //    private int direction;
     private int length;
     private final List<int[]> piecesList = new ArrayList<>();
     private final int[] movementBuffer;
     private int bufferContains;
     boolean bufferUtilized;
-    private final SnakeMoveListener field;
+    private FieldEventListener field;
+    boolean foodFound;
 
-    public Snake(SnakeMoveListener field) {
-        this.field = field;
-
+    public Snake() {
+        System.out.println(foodFound);
         // 3 initial elements for head, next to head and tail
         
         piecesList.add(new int[] {0, 0});
@@ -30,29 +30,28 @@ public class Snake extends Thread implements KeyListener {
         this.length = 1;
     }
 
-
+    public void setField(FieldEventListener field) {
+        this.field = field;
+    }
 
     @Override
     public void run() {
         boolean foodEaten;
-        boolean foodFound = false;
         while(!isInterrupted()) {
             foodEaten = false;
-            try {
-                if(foodFound) {
-                    field.spawnFood();
-                    foodFound = field.moveHead(new MoveEvent(this, movementBuffer[0], piecesList));
-                    length++;
-                    System.out.println(length);
-                    foodEaten = true;
-                } else {
-                    foodFound = field.moveSnake(new MoveEvent(this, movementBuffer[0], piecesList));
-                }
-            } catch (Exception e) {
-                System.out.println("Game over!");
-                System.exit(0);
-                break;
+            // moving snake
+            if(foodFound) {
+                System.out.println("entered");
+                foodFound = false;
+                field.fireSpawnFood();
+                field.fireMoveHead(new MoveEvent(this, movementBuffer[0], piecesList));
+                length++;
+                System.out.println(length);
+                foodEaten = true;
+            } else {
+                field.fireMoveSnake(new MoveEvent(this, movementBuffer[0], piecesList));
             }
+            // changing snake's body coordinates after the move
             if(length != 1) {
                 if (length == 3) {
                     piecesList.get(2)[0] = piecesList.get(1)[0];
@@ -71,9 +70,13 @@ public class Snake extends Thread implements KeyListener {
                     }
                 }
             }
-            if(length > 3 && foodEaten) piecesList.add(1,
-                    new int[] {piecesList.get(0)[0], piecesList.get(0)[1]});
-            switch (movementBuffer[0]) { // change head position
+
+            // add new segment
+            if(length > 3 && foodEaten)
+                piecesList.add(1, new int[] {piecesList.get(0)[0], piecesList.get(0)[1]});
+
+            // change head position
+            switch (movementBuffer[0]) {
                 case 0 -> piecesList.get(0)[0]--;
                 case 1 -> piecesList.get(0)[1]++;
                 case 2 -> piecesList.get(0)[0]++;
@@ -85,15 +88,30 @@ public class Snake extends Thread implements KeyListener {
                 piecesList.get(2)[0] = piecesList.get(1)[0];
                 piecesList.get(2)[1] = piecesList.get(1)[1];
             }
+            // game tick
             try {
-                Thread.sleep(250 - length * 4L);
+                Thread.sleep(200 - length * 3L);
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                interrupt();
             }
+
             if(bufferUtilized) removeDirection();
             bufferUtilized = true;
         }
     }
+
+    @Override
+    public void fireFoodFound() {
+        foodFound = true;
+    }
+
+    @Override
+    public void fireCollision() {
+        System.out.println("Game over!");
+        System.exit(0);
+        interrupt();
+    }
+
     @Override
     public void keyTyped(KeyEvent e) {
 

@@ -12,9 +12,12 @@ public class Main extends JFrame {
         MyPanel panel = new MyPanel();
         panel.setFocusable(true);
 
-        Snake snake = new Snake(field);
+        Snake snake = new Snake();
         fieldTable.addKeyListener(snake);
         snake.start();
+
+        field.setSnake(snake);
+        snake.setField(field);
 
         fieldTable.setDefaultRenderer(Integer.class, panel);
 

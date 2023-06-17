@@ -1,19 +1,35 @@
 import javax.swing.table.AbstractTableModel;
+import java.util.Arrays;
 
-public class Field extends AbstractTableModel implements SnakeMoveListener {
+public class Field extends AbstractTableModel implements FieldEventListener {
     int[][] field;
     private final int WIDTH = 25;
     private final int HEIGHT = 16;
+    private SnakeEventListener snake;
 
     public Field() {
-        // 0 = Empty, 1 = Snake Body, 2 = Snake Head, 3 = Food
-        field = new int[HEIGHT][WIDTH];
+        // 0 = Empty, 1 = Snake Body and Border, 2 = Snake Head, 3 = Food
+        // + 2 is needed for not visible border, used for collision check
+        field = new int[HEIGHT + 2][WIDTH + 2];
 
-        for (int i = 0; i < HEIGHT; i++)
-            for (int j = 0; j < WIDTH; j++)
-                field[i][j] = 0;
-        field[0][0] = 2;
-        spawnFood();
+        for (int i = 0; i < HEIGHT + 2; i++) {
+            for (int j = 0; j < WIDTH + 2; j++) {
+                if (j == 0 || i == 0 || j == WIDTH + 1 || i == HEIGHT + 1) {
+                    field[i][j] = 1;
+                } else {
+                    field[i][j] = 0;
+                }
+            }
+        }
+        field[1][1] = 2;
+        for (int i = 0; i < HEIGHT + 2; i++) {
+            System.out.println(Arrays.toString(field[i]));
+        }
+        fireSpawnFood();
+    }
+
+    public void setSnake(SnakeEventListener snake) {
+        this.snake = snake;
     }
 
     @Override
@@ -28,7 +44,7 @@ public class Field extends AbstractTableModel implements SnakeMoveListener {
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
-        return field[rowIndex][columnIndex];
+        return field[rowIndex + 1][columnIndex + 1];
     }
 
     @Override
@@ -43,12 +59,12 @@ public class Field extends AbstractTableModel implements SnakeMoveListener {
 
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-        this.field[rowIndex][columnIndex] = Integer.parseInt(aValue.toString());
+        this.field[rowIndex + 1][columnIndex + 1] = Integer.parseInt(aValue.toString());
     }
 
     // <---------- SNAKE MOVEMENT AND FOOD ---------->
 
-    public void spawnFood() {
+    public void fireSpawnFood() {
         int x = (int)(Math.random() * WIDTH);
         int y = (int)(Math.random() * HEIGHT);
         while(Integer.parseInt(getValueAt(y,x).toString()) == 3 ||
@@ -61,18 +77,18 @@ public class Field extends AbstractTableModel implements SnakeMoveListener {
         fireTableCellUpdated(y, x);
     }
 
-    public boolean checkFood(Object valueAt) {
-        return Integer.parseInt(valueAt.toString()) == 3;
+    public void checkFood(Object valueAt) {
+        if(Integer.parseInt(valueAt.toString()) == 3) snake.fireFoodFound();
     }
 
     @Override
-    public boolean moveSnake(MoveEvent evt) throws Exception {
+    public void fireMoveSnake(MoveEvent evt) {
 
         // place next to head
         setValueAt(1, evt.getPieces().get(0)[0], evt.getPieces().get(0)[1]);
         fireTableCellUpdated(evt.getPieces().get(0)[0], evt.getPieces().get(0)[1]);
 
-        boolean food = moveHead(evt);
+        fireMoveHead(evt);
 
         // clean tail cell
         setValueAt(0, evt.getPieces().get(
@@ -82,47 +98,44 @@ public class Field extends AbstractTableModel implements SnakeMoveListener {
         fireTableCellUpdated(evt.getPieces().get(
                         evt.getPieces().size() - 1)[0],
                         evt.getPieces().get(evt.getPieces().size() - 1)[1]);
-
-        return food;
     }
     @Override
-    public boolean moveHead(MoveEvent evt) throws Exception {
-        boolean food = false;
+    public void fireMoveHead(MoveEvent evt){
         int x = evt.getPieces().get(0)[1];
         int y = evt.getPieces().get(0)[0];
         switch (evt.getDirection()) {
             case 0 -> {
-                food = checkFood(getValueAt(y - 1, x));
+                checkFood(getValueAt(y - 1, x));
 
                 if(Integer.parseInt(getValueAt(y - 1, x).toString()) == 1)
-                    throw new Exception();
+                    snake.fireCollision();
 
                 setValueAt(2, y - 1, x);
                 fireTableCellUpdated(y - 1, x);
             }
             case 1 -> {
-                food = checkFood(getValueAt(y, x + 1));
+                 checkFood(getValueAt(y, x + 1));
 
                 if(Integer.parseInt(getValueAt(y, x + 1).toString()) == 1)
-                    throw new Exception();
+                    snake.fireCollision();
 
                 setValueAt(2, y, x + 1);
                 fireTableCellUpdated(y, x + 1);
             }
             case 2 -> {
-                food = checkFood(getValueAt(y + 1, x));
+                checkFood(getValueAt(y + 1, x));
 
                 if(Integer.parseInt(getValueAt(y + 1, x).toString()) == 1)
-                    throw new Exception();
+                    snake.fireCollision();
 
                 setValueAt(2, y + 1, x);
                 fireTableCellUpdated(y + 1, x);
             }
             case 3 -> {
-                food = checkFood(getValueAt(y, x - 1));
+                checkFood(getValueAt(y, x - 1));
 
                 if(Integer.parseInt(getValueAt(y, x - 1).toString()) == 1)
-                    throw new Exception();
+                    snake.fireCollision();
 
                 setValueAt(2, y, x - 1);
                 fireTableCellUpdated(y, x - 1);
@@ -130,7 +143,5 @@ public class Field extends AbstractTableModel implements SnakeMoveListener {
         }
         setValueAt(1, y, x);
         fireTableCellUpdated(y, x);
-
-        return food;
     }
 }
