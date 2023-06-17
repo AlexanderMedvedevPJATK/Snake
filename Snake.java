@@ -19,8 +19,6 @@ public class Snake extends Thread implements KeyListener, SnakeEventListener {
         // 3 initial elements for head, next to head and tail
         
         piecesList.add(new int[] {0, 0});
-        piecesList.add(new int[] {0, 0});
-        piecesList.add(new int[] {0, 0});
 
         // this.direction = 1; // 0 - UP, 1 - RIGHT, 2 - DOWN, 3 - LEFT
         this.bufferContains = 1;
@@ -41,7 +39,6 @@ public class Snake extends Thread implements KeyListener, SnakeEventListener {
             foodEaten = false;
             // moving snake
             if(foodFound) {
-                System.out.println("entered");
                 foodFound = false;
                 field.fireSpawnFood();
                 field.fireMoveHead(new MoveEvent(this, movementBuffer[0], piecesList));
@@ -51,29 +48,18 @@ public class Snake extends Thread implements KeyListener, SnakeEventListener {
             } else {
                 field.fireMoveSnake(new MoveEvent(this, movementBuffer[0], piecesList));
             }
-            // changing snake's body coordinates after the move
-            if(length != 1) {
-                if (length == 3) {
-                    piecesList.get(2)[0] = piecesList.get(1)[0];
-                    piecesList.get(2)[1] = piecesList.get(1)[1];
-                    piecesList.get(1)[0] = piecesList.get(0)[0];
-                    piecesList.get(1)[1] = piecesList.get(0)[1];
-                } else if (length == 2) {
-                    piecesList.get(1)[0] = piecesList.get(0)[0];
-                    piecesList.get(1)[1] = piecesList.get(0)[1];
-                    piecesList.get(2)[0] = piecesList.get(0)[0];
-                    piecesList.get(2)[1] = piecesList.get(0)[1];
-                } else if(!foodEaten) {
-                    for (int i = piecesList.size() - 1; i > 0; i--) {
-                        piecesList.get(i)[0] = piecesList.get(i - 1)[0];
-                        piecesList.get(i)[1] = piecesList.get(i - 1)[1];
-                    }
-                }
-            }
 
             // add new segment
-            if(length > 3 && foodEaten)
+            if(foodEaten)
                 piecesList.add(1, new int[] {piecesList.get(0)[0], piecesList.get(0)[1]});
+
+            // changing snake's body coordinates after the move
+            if(!foodEaten) {
+                for (int i = length - 1; i > 0; i--) {
+                    piecesList.get(i)[0] = piecesList.get(i - 1)[0];
+                    piecesList.get(i)[1] = piecesList.get(i - 1)[1];
+                }
+            }
 
             // change head position
             switch (movementBuffer[0]) {
@@ -82,12 +68,7 @@ public class Snake extends Thread implements KeyListener, SnakeEventListener {
                 case 2 -> piecesList.get(0)[0]++;
                 case 3 -> piecesList.get(0)[1]--;
             }
-            if(length == 1) {
-                piecesList.get(1)[0] = piecesList.get(0)[0];
-                piecesList.get(1)[1] = piecesList.get(0)[1];
-                piecesList.get(2)[0] = piecesList.get(1)[0];
-                piecesList.get(2)[1] = piecesList.get(1)[1];
-            }
+
             // game tick
             try {
                 Thread.sleep(200 - length * 3L);
