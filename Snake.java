@@ -1,21 +1,26 @@
+import javax.swing.JOptionPane;
+import javax.xml.crypto.Data;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class Snake extends Thread implements KeyListener, SnakeEventListener {
 //    private int direction;
+    private boolean foodFound;
     private int length;
+    private int score;
     private final List<int[]> piecesList = new ArrayList<>();
     private final int[] movementBuffer;
     private int bufferContains;
-    boolean bufferUtilized;
+    private boolean bufferUtilized;
     private FieldEventListener field;
-    boolean foodFound;
+    private ScoreEventListener scorePanel;
+    private TopScoreListener topScoreListener;
 
     public Snake() {
-        System.out.println(foodFound);
         // 3 initial elements for head, next to head and tail
         
         piecesList.add(new int[] {0, 0});
@@ -31,6 +36,12 @@ public class Snake extends Thread implements KeyListener, SnakeEventListener {
     public void setField(FieldEventListener field) {
         this.field = field;
     }
+    public void setScoreListener(ScoreEventListener scorePanel) {
+        this.scorePanel = scorePanel;
+    }
+    public void setTopScoreListener(TopScoreListener topScoreListener) {
+        this.topScoreListener = topScoreListener;
+    }
 
     @Override
     public void run() {
@@ -42,8 +53,8 @@ public class Snake extends Thread implements KeyListener, SnakeEventListener {
                 foodFound = false;
                 field.fireSpawnFood();
                 field.fireMoveHead(new MoveEvent(this, movementBuffer[0], piecesList));
-                length++;
-                System.out.println(length);
+                score += ((length++ - 1) / 10 + 1);
+                scorePanel.fireScoreChange(new ScoreChangeEvent(this, score));
                 foodEaten = true;
             } else {
                 field.fireMoveSnake(new MoveEvent(this, movementBuffer[0], piecesList));
@@ -89,8 +100,134 @@ public class Snake extends Thread implements KeyListener, SnakeEventListener {
     @Override
     public void fireCollision() {
         System.out.println("Game over!");
-        System.exit(0);
+        readScores();
         interrupt();
+    }
+
+    private String getCurrentScore() {
+        String nickname = "";
+        try(FileOutputStream fos = new FileOutputStream("scores.bin", true)) {
+            while (nickname == null || nickname.trim().equals("")) {
+                nickname = JOptionPane.showInputDialog(
+                        null,
+                        "New high score! Enter nickname",
+                        "New high score",
+                        JOptionPane.PLAIN_MESSAGE);
+                if (nickname == null) {
+                    int result = JOptionPane.showConfirmDialog(null,
+                            "The result will be lost!", "Confirmation", JOptionPane.YES_NO_OPTION);
+                    if(result == JOptionPane.YES_OPTION) {
+                        break;
+                    }
+                } else if (nickname.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(null,
+                            "Nickname should not be empty",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                } else if (nickname.length() > 15) {
+                    JOptionPane.showMessageDialog(null,
+                            "Nickname cannot contain more than 15 characters",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    nickname = "";
+                } else {
+//                    char[] nicknameArr = nickname.trim().toCharArray();
+//                    fos.write(nicknameArr.length);
+//                    for(char ch : nicknameArr) {
+//                        fos.write(ch >> 8);
+//                        fos.write(ch);
+//                    }
+//                    for (int i = Integer.BYTES - 1; i >= 0; i--) {
+//                        fos.write(score >> (8 * i));
+//                        System.out.println(score >> (8 * i));
+//                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return nickname + " " + score;
+    // topScoreListener.showTopScore(new TopScoreEvent(this, scores));
+    }
+
+    public void readScores() {
+        boolean added = false;
+        List<String> scores = new ArrayList<>();
+        try(FileInputStream fos = new FileInputStream("scores.bin")) {
+            int data;
+            int recordScore = 0;
+            int bytesCounter = 3;
+            StringBuilder scoreRecord = new StringBuilder();
+            while((data = fos.read()) != -1) {
+                scoreRecord.setLength(0);
+                for (int i = 0; i < data; i++) {
+                    char ch = (char)(fos.read() << 8 | fos.read());
+                    scoreRecord.append(ch);
+                }
+                for(int i = Integer.BYTES - 1; i >= 0; i--) {
+                    recordScore = fos.read() << 8 * bytesCounter--;
+                }
+                scoreRecord.append(" ").append(recordScore);
+
+                if (recordScore < score && !added) {
+                    scores.add(getCurrentScore());
+                    added = true;
+                }
+
+                scores.add(String.valueOf(scoreRecord));
+//                boolean added = false;
+//                for (int i = 0; i < scores.size(); i++) {
+//                    String[] recordArr = scores.get(i).split(" ");
+//                    if (Integer.parseInt(recordArr[recordArr.length - 1]) < score) {
+//
+//                        scores.add(i, String.valueOf(scoreRecord));
+//                        added = true;
+//                        if (scores.size() > 10) scores.remove(10);
+//                        break;
+//                    }
+//                }
+//                if (!added && scores.size() < 10) {
+//                    scores.add(String.valueOf(scoreRecord));
+//                }
+            }
+            saveScores(scores);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if(scores.isEmpty() || scores.size() < 10 && !added) {
+            scores.add(getCurrentScore());
+            added = true;
+        }
+        if(added) saveScores(scores);
+        topScoreListener.showTopScore(new TopScoreEvent(this, scores));
+    }
+
+    public void saveScores(List<String> scores) {
+        System.out.println("called");
+        try(FileOutputStream fos = new FileOutputStream("scores.bin")) {
+            for (String record : scores) {
+                String[] recordArr = record.split(" ");
+                StringBuilder nickname = new StringBuilder();
+                int recordScore = Integer.parseInt(recordArr[recordArr.length - 1]);
+
+                for (int i = 0; i < recordArr.length - 1; i++) {
+                    nickname.append(recordArr[i]).append(" ");
+                }
+
+                char[] nicknameArr = String.valueOf(nickname).trim().toCharArray();
+                fos.write(nicknameArr.length);
+                for(char ch : nicknameArr) {
+                    fos.write(ch >> 8);
+                    fos.write(ch);
+                }
+                for (int i = Integer.BYTES - 1; i >= 0; i--) {
+                    fos.write(recordScore >> (8 * i));
+                    System.out.println(recordScore >> (8 * i));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -132,23 +269,19 @@ public class Snake extends Thread implements KeyListener, SnakeEventListener {
             movementBuffer[0] = direction;
             bufferUtilized = false;
         } else if(bufferContains == 1) {
-            System.out.println("Entered 1");
 
             if(invalidDirection(direction, 0)) return;
 
-            System.out.println("Direction added");
             movementBuffer[1] = direction;
             bufferContains++;
             bufferUtilized = false;
         } else {
-            System.out.println("Entered 2");
 
             if(invalidDirection(direction, 1)) return;
 
             movementBuffer[0] = movementBuffer[1];
             movementBuffer[1] = direction;
 
-            System.out.println("Direction replaced");
             bufferUtilized = false;
         }
     }

@@ -1,3 +1,4 @@
+import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.util.Arrays;
 
@@ -22,9 +23,6 @@ public class Field extends AbstractTableModel implements FieldEventListener {
             }
         }
         field[1][1] = 2;
-        for (int i = 0; i < HEIGHT + 2; i++) {
-            System.out.println(Arrays.toString(field[i]));
-        }
         fireSpawnFood();
     }
 
@@ -83,12 +81,11 @@ public class Field extends AbstractTableModel implements FieldEventListener {
 
     @Override
     public void fireMoveSnake(MoveEvent evt) {
+        fireMoveHead(evt);
 
         // place next to head
         setValueAt(1, evt.getPieces().get(0)[0], evt.getPieces().get(0)[1]);
         fireTableCellUpdated(evt.getPieces().get(0)[0], evt.getPieces().get(0)[1]);
-
-        fireMoveHead(evt);
 
         // clean tail cell
         setValueAt(0, evt.getPieces().get(
